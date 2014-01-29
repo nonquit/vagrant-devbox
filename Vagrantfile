@@ -4,6 +4,8 @@
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 
+SRC_PATH = ENV["SRC_PATH"] ||= File.join(ENV["HOME"], "src")
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.box = "precise-server-cloudimg-amd64"
@@ -26,7 +28,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # config.vm.network :public_network
 
   config.ssh.forward_agent = true
-  config.vm.synced_folder "~/src", "/home/vagrant/src"
+  config.vm.synced_folder SRC_PATH, "/home/vagrant/src"
 
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", "2048"]
