@@ -30,6 +30,27 @@ dpkg -i $pkgs/$debfile
 chef-server-ctl reconfigure
 chef-server-ctl test
 
+mkdir -p /home/vagrant/.chef
+cp /etc/chef-server/admin.pem /home/vagrant/.chef
+cp /etc/chef-server/chef-validator.pem /home/vagrant/.chef
+
+cat <<EOF > /home/vagrant/.chef/knife.rb
+log_level                :info
+log_location             STDOUT
+node_name                'admin'
+client_key               '/home/vagrant/.chef/admin.pem'
+validation_client_name   'chef-validator'
+validation_key           '/home/vagrant/chef-validator.pem'
+chef_server_url          'https://devbox:443'
+syntax_check_cache_path  '/home/vagrant/.chef/syntax_check_cache'
+cookbook_path            [ './cookbooks' ]
+EOF
+
+mkdir -p /home/vagrant/.berkshelf
+cat <<EOF > /home/vagrant/.berkshelf/config.json
+{ "ssl": { "verify": false } }
+EOF
+
 curl -L https://www.opscode.com/chef/install.sh | bash
 
 cat <<EOF > /etc/sudoers
@@ -41,8 +62,6 @@ vagrant     ALL=(ALL:ALL) NOPASSWD:ALL
 %sudo       ALL=(ALL:ALL) ALL
 EOF
 
-exit
-
 cat <<EOF > /home/vagrant/.ssh/config
 Host *
 ServerAliveInterval 300
@@ -51,7 +70,6 @@ ForwardAgent yes
 StrictHostKeyChecking no
 EOF
 
-chown vagrant:vagrant /home/vagrant/.ssh/config
 chmod 600 /home/vagrant/.ssh/config
 
 cat <<EOF > /home/vagrant/.bash_aliases
@@ -60,3 +78,5 @@ export EDITOR=vim
 export PAGER=less
 export LESS=-FRXi
 EOF
+
+chown -R vagrant:vagrant /home/vagrant
