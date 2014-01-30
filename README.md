@@ -18,7 +18,11 @@ Includes:
 * ruby1.9.1-dev
 * vim
 
-## Start
+## Prerequisites
+* [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+* [Vagrant](https://www.vagrantup.com/downloads.html)
+
+## Start virtual machine
 
     git clone https://github.com/torandu/vagrant-devbox
     cd vagrant-devbox
