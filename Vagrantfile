@@ -31,7 +31,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.synced_folder SRC_PATH, "/home/vagrant/src"
 
   config.vm.provider :virtualbox do |vb|
-    vb.customize ["modifyvm", :id, "--memory", "2048"]
+    vb.customize ["modifyvm", :id, "--memory", "4096"]
   end
 
   config.vm.provision "shell", path: "install.sh"
