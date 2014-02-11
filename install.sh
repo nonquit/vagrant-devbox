@@ -2,81 +2,120 @@
 
 set -e
 
-packages=" ack-grep build-essential git htop libssl-dev libxml2-dev
-libxslt1-dev python-dev python-pip rsync ruby1.9.1-dev tree vim "
+ssh_pubkey="$1"
+ssh_known_hosts="$2"
+chef_repo_url="$3"
+chef_repo_branch="$4"
 
+base_packages="
+    build-essential
+    git
+    libssl-dev
+    libxml2-dev
+    libxslt1-dev
+    python-dev
+    python-pip
+    python-software-properties
+    ruby1.9.1-dev
+    vim
+"
 apt-get update
-apt-get -y install $packages
+apt-get -y install $base_packages
 
-update-alternatives --set editor /usr/bin/vim.basic
 update-alternatives --set ruby /usr/bin/ruby1.9.1
 update-alternatives --set gem /usr/bin/gem1.9.1
+update-alternatives --set editor /usr/bin/vim.basic
 
-gem install --no-ri --no-rdoc bundler
+ruby_gems="
+    awesome_print
+    bundler
+    pry
+"
+gem install --no-ri --no-rdoc $ruby_gems
 
-pip install git-review
-pip install ipython
-pip install virtualenvwrapper
+python_packages="
+    git-review
+    ipython
+    virtualenvwrapper
+"
+pip install $python_packages
 
-debfile=chef-server_11.0.10-1.ubuntu.12.04_amd64.deb
-pkgs=/vagrant/pkgs
-mkdir -p $pkgs
-if [ ! -f $pkgs/$debfile ]; then
-    wget -P $pkgs \
-        https://opscode-omnibus-packages.s3.amazonaws.com/ubuntu/12.04/x86_64/$debfile
-fi
-dpkg -i $pkgs/$debfile
+cache_d=/vagrant/.cache/pkgs
+mkdir -p $cache_d
+chef_pkgs="
+    chef-server_11.0.10-1.ubuntu.12.04_amd64.deb
+    chef_11.10.0-1.ubuntu.12.04_amd64.deb
+"
+
+for pkg in $chef_pkgs; do
+    if [ ! -f $cache_d/$pkg ]; then
+        wget -P $cache \
+            https://opscode-omnibus-packages.s3.amazonaws.com/ubuntu/12.04/x86_64/$pkg
+    fi
+    dpkg -i $cache_d/$pkg
+done
 
 chef-server-ctl reconfigure
 chef-server-ctl test
 
-mkdir -p /home/vagrant/.chef
-cp /etc/chef-server/admin.pem /home/vagrant/.chef
-cp /etc/chef-server/chef-validator.pem /home/vagrant/.chef
+echo "root:password" | sudo chpasswd # Enable root
+mkdir -p /root/.ssh
+chmod 0700 /root/.ssh
+echo $ssh_pubkey >> /root/.ssh/authorized_keys
+echo $ssh_known_hosts >> /root/.ssh/known_hosts
 
-cat <<EOF > /home/vagrant/.chef/knife.rb
-log_level                :info
-log_location             STDOUT
-node_name                'admin'
-client_key               '/home/vagrant/.chef/admin.pem'
-validation_client_name   'chef-validator'
-validation_key           '/home/vagrant/chef-validator.pem'
-chef_server_url          'https://devbox:443'
-syntax_check_cache_path  '/home/vagrant/.chef/syntax_check_cache'
-cookbook_path            [ './cookbooks' ]
-EOF
-
-mkdir -p /home/vagrant/.berkshelf
-cat <<EOF > /home/vagrant/.berkshelf/config.json
-{ "ssl": { "verify": false } }
-EOF
-
-curl -L https://www.opscode.com/chef/install.sh | bash
-
-cat <<EOF > /etc/sudoers
-Defaults    env_reset
-Defaults    secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-root        ALL=(ALL:ALL) ALL
-vagrant     ALL=(ALL:ALL) NOPASSWD:ALL
-%admin      ALL=(ALL) NOPASSWD:ALL
-%sudo       ALL=(ALL:ALL) ALL
-EOF
-
-cat <<EOF > /home/vagrant/.ssh/config
+cat <<EOF > /root/.ssh/config
 Host *
 ServerAliveInterval 300
 ServerAliveCountMax 12
 ForwardAgent yes
 StrictHostKeyChecking no
 EOF
+chmod 0600 /root/.ssh/config
 
-chmod 600 /home/vagrant/.ssh/config
-
-cat <<EOF > /home/vagrant/.bash_aliases
+cat <<EOF > /root/.bash_aliases
 # .bash_aliases
 export EDITOR=vim
 export PAGER=less
 export LESS=-FRXi
 EOF
 
-chown -R vagrant:vagrant /home/vagrant
+mkdir -p /root/.chef
+cat <<EOF > /root/.chef/knife.rb
+log_level                :info
+log_location             STDOUT
+node_name                'admin'
+client_key               '/etc/chef-server/admin.pem'
+validation_client_name   'chef-validator'
+validation_key           '/etc/chef-server/chef-validator.pem'
+chef_server_url          'https://127.0.0.1:443'
+syntax_check_cache_path  '/home/vagrant/.chef/syntax_check_cache'
+cookbook_path            [ './cookbooks' ]
+EOF
+
+mkdir -p /root/.berkshelf
+cat <<EOF > /root/.berkshelf/config.json
+{ "ssl": { "verify": false } }
+EOF
+
+if [ -n "$chef_repo_url" ]; then
+    git clone -b $chef_repo_branch $chef_repo_url /opt/chef-repo
+    cd /opt/chef-repo
+    bundle install
+
+    # Ridley::SandboxResource crashed!
+    set +e
+    exit_status=1
+    tries=1
+    while [[ $exit_status != 0 ]] && [[ $tries -le 3 ]] ; do
+        bundle exec berks upload
+        exit_status=$?
+        [[ $exit_status == 0 ]] && break
+        tries=$((tries += 1))
+        sleep 2
+    done
+    set -e
+    [[ $exit_status == 0 ]]
+
+    knife cookbook list > /root/knife-cookbook-list.devbox
+fi
