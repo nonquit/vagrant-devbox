@@ -56,7 +56,6 @@ for pkg in $chef_pkgs; do
 done
 
 chef-server-ctl reconfigure
-chef-server-ctl test
 
 echo "root:password" | sudo chpasswd # Enable root
 mkdir -p /root/.ssh
