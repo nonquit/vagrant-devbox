@@ -22,7 +22,7 @@ Create/ edit .devbox.yml file:
     cp .devbox-example.yml .devbox.yml
     vim .devbox.yml
 
-Update options as required.
+Update options as required. Be sure to set a valid ssh\_pubkey.
 
 The following two steps are optional, but will facilitate:
 
