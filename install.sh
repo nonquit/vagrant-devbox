@@ -97,6 +97,10 @@ cat <<EOF > /root/.berkshelf/config.json
 { "ssl": { "verify": false } }
 EOF
 
+cat <<EOF > /etc/gemrc
+gem: --no-ri --no-rdoc
+EOF
+
 if [ -n "$chef_repo_url" ]; then
     git clone -b $chef_repo_branch $chef_repo_url /opt/chef-repo
     cd /opt/chef-repo
