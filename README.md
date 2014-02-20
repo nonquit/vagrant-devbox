@@ -17,10 +17,10 @@ Optional:
 
 ## Setup
 
-Create/ edit .devbox.yml file:
+Create/ edit devbox.yml file:
 
-    cp .devbox-example.yml .devbox.yml
-    vim .devbox.yml
+    cp devbox-example.yml devbox.yml
+    vim devbox.yml
 
 Update options as required. Be sure to set a valid ssh\_pubkey.
 
