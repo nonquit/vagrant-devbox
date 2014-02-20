@@ -57,6 +57,10 @@ As vagrant user:
 
     vagrant ssh
 
+## Vagrant commands
+
+    vagrant -h
+
 ## Chef Server WebUI
 
 [https://devbox.local/](https://devbox.local/)
