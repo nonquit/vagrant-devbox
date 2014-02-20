@@ -1,11 +1,12 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 ssh_pubkey="$1"
 ssh_known_hosts="$2"
-chef_repo_url="$3"
-chef_repo_branch="$4"
+install_chef="$3"
+chef_repo_url="$4"
+chef_repo_branch="$5"
 
 base_packages="
     build-essential
@@ -40,23 +41,6 @@ python_packages="
 "
 pip install $python_packages
 
-cache_d=/vagrant/.cache/pkgs
-mkdir -p $cache_d
-chef_pkgs="
-    chef-server_11.0.10-1.ubuntu.12.04_amd64.deb
-    chef_11.10.0-1.ubuntu.12.04_amd64.deb
-"
-
-for pkg in $chef_pkgs; do
-    if [ ! -f $cache_d/$pkg ]; then
-        wget -P $cache \
-            https://opscode-omnibus-packages.s3.amazonaws.com/ubuntu/12.04/x86_64/$pkg
-    fi
-    dpkg -i $cache_d/$pkg
-done
-
-chef-server-ctl reconfigure
-
 echo "root:password" | sudo chpasswd # Enable root
 mkdir -p /root/.ssh
 chmod 0700 /root/.ssh
@@ -79,6 +63,31 @@ export PAGER=less
 export LESS=-FRXi
 EOF
 
+mkdir -p /root/.berkshelf
+cat <<EOF > /root/.berkshelf/config.json
+{ "ssl": { "verify": false } }
+EOF
+
+cat <<EOF > /etc/gemrc
+gem: --no-ri --no-rdoc
+EOF
+
+install_chef() {
+    cache_d=/vagrant/.cache/pkgs
+    mkdir -p $cache_d
+    chef_pkgs="
+        chef-server_11.0.10-1.ubuntu.12.04_amd64.deb
+        chef_11.10.0-1.ubuntu.12.04_amd64.deb
+    "
+    for pkg in $chef_pkgs; do
+        if [ ! -f $cache_d/$pkg ]; then
+            wget -P $cache \
+                https://opscode-omnibus-packages.s3.amazonaws.com/ubuntu/12.04/x86_64/$pkg
+        fi
+        dpkg -i $cache_d/$pkg
+    done
+    chef-server-ctl reconfigure
+
 mkdir -p /root/.chef
 cat <<EOF > /root/.chef/knife.rb
 log_level                :info
@@ -91,34 +100,32 @@ chef_server_url          'https://127.0.0.1:443'
 syntax_check_cache_path  '/home/vagrant/.chef/syntax_check_cache'
 cookbook_path            [ './cookbooks' ]
 EOF
+}
 
-mkdir -p /root/.berkshelf
-cat <<EOF > /root/.berkshelf/config.json
-{ "ssl": { "verify": false } }
-EOF
 
-cat <<EOF > /etc/gemrc
-gem: --no-ri --no-rdoc
-EOF
+if [ $install_chef == "true" ]; then
 
-if [ -n "$chef_repo_url" ]; then
-    git clone -b $chef_repo_branch $chef_repo_url /opt/chef-repo
-    cd /opt/chef-repo
-    bundle install
+    install_chef
 
-    # Ridley::SandboxResource crashed!
-    set +e
-    exit_status=1
-    tries=1
-    while [[ $exit_status != 0 ]] && [[ $tries -le 3 ]] ; do
-        bundle exec berks upload
-        exit_status=$?
-        [[ $exit_status == 0 ]] && break
-        tries=$((tries += 1))
-        sleep 2
-    done
-    set -e
-    [[ $exit_status == 0 ]]
+    if [ -n "$chef_repo_url" ]; then
+        git clone -b $chef_repo_branch $chef_repo_url /opt/chef-repo
+        cd /opt/chef-repo
+        bundle install
 
-    knife cookbook list > /root/knife-cookbook-list.devbox
+        # Ridley::SandboxResource crashed!
+        set +e
+        exit_status=1
+        tries=1
+        while [[ $exit_status != 0 ]] && [[ $tries -le 3 ]] ; do
+            bundle exec berks upload
+            exit_status=$?
+            [[ $exit_status == 0 ]] && break
+            tries=$((tries += 1))
+            sleep 2
+        done
+        set -e
+        [[ $exit_status == 0 ]]
+
+        knife cookbook list > /root/knife-cookbook-list.devbox
+    fi
 fi

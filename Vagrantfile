@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 require 'yaml'
-OPTS = YAML.load_file ('.devbox.yml')
+OPTS = YAML.load_file ('devbox.yml')
 
 Vagrant.configure('2') do |config|
   config.vm.box = 'precise-server-cloudimg-amd64'
@@ -18,5 +18,6 @@ Vagrant.configure('2') do |config|
     vb.customize ['modifyvm', :id, '--memory', '4096']
   end
   config.vm.provision 'shell', path: 'install.sh', \
-    args: [ OPTS[:ssh_pubkey], OPTS[:ssh_known_hosts], OPTS[:chef_repo][:url], OPTS[:chef_repo][:branch] ]
+    args: [ OPTS[:ssh_pubkey], OPTS[:ssh_known_hosts], OPTS[:install_chef].to_s,
+            OPTS[:chef_repo][:url], OPTS[:chef_repo][:branch] ]
 end
