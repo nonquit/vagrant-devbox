@@ -57,7 +57,7 @@ As vagrant user:
 
     vagrant ssh
 
-## Vagrant commands
+## Vagrant help
 
     vagrant -h
 
