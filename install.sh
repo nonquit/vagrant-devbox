@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 ssh_pubkey="$1"
 ssh_known_hosts="$2"
