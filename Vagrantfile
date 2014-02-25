@@ -19,5 +19,5 @@ Vagrant.configure('2') do |config|
   end
   config.vm.provision 'shell', path: 'install.sh', \
     args: [ OPTS[:ssh_pubkey], OPTS[:ssh_known_hosts], OPTS[:install_chef].to_s,
-            OPTS[:chef_repo][:url], OPTS[:chef_repo][:branch] ]
+            OPTS[:chef_repo][:url], OPTS[:chef_repo][:branch], OPTS[:install_mysql].to_s ]
 end

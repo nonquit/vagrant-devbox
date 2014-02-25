@@ -9,3 +9,4 @@
     :url:
     :branch: master
 :install_chef: false
+:install_mysql: false

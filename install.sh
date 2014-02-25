@@ -2,11 +2,15 @@
 
 set -e
 
+# Enable non-interactive install of mysql server
+export DEBIAN_FRONTEND=noninteractive
+
 ssh_pubkey="$1"
 ssh_known_hosts="$2"
 install_chef="$3"
 chef_repo_url="$4"
 chef_repo_branch="$5"
+install_mysql="$6"
 
 base_packages="
     build-essential
@@ -18,10 +22,15 @@ base_packages="
     python-pip
     python-software-properties
     ruby1.9.1-dev
+    tree
     vim
 "
 apt-get update
 apt-get -y install $base_packages
+
+if [ $install_mysql ]; then
+    apt-get -y install mysql-server
+fi
 
 update-alternatives --set ruby /usr/bin/ruby1.9.1
 update-alternatives --set gem /usr/bin/gem1.9.1
