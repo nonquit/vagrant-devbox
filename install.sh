@@ -28,7 +28,7 @@ base_packages="
 apt-get update
 apt-get -y install $base_packages
 
-if [ $install_mysql ]; then
+if [ $install_mysql == "true" ]; then
     apt-get -y install mysql-server
 fi
 
@@ -44,7 +44,6 @@ ruby_gems="
 gem install --no-ri --no-rdoc $ruby_gems
 
 python_packages="
-    git-review
     ipython
     virtualenvwrapper
 "
@@ -110,7 +109,6 @@ syntax_check_cache_path  '/home/vagrant/.chef/syntax_check_cache'
 cookbook_path            [ './cookbooks' ]
 EOF
 }
-
 
 if [ $install_chef == "true" ]; then
 
